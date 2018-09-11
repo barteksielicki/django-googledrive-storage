@@ -246,7 +246,7 @@ class GoogleDriveStorage(Storage):
                 # obtained by the user, if available
                 if parent_id is not None:
                     meta_data['parents'] = [{'id': parent_id}]
-            current_folder_data = self._drive_service.files().insert(body=meta_data).execute()
+            current_folder_data = self._drive_service.files().insert(body=meta_data).execute(num_retries=10)
             return current_folder_data    
         else:
             return folder_data
@@ -274,7 +274,7 @@ class GoogleDriveStorage(Storage):
             if parent_id is not None:
                 q = "{0} and '{1}' in parents".format(q, parent_id)
             max_results = 1000  # Max value admitted from google drive
-            folders = self._drive_service.files().list(q=q, maxResults=max_results).execute()
+            folders = self._drive_service.files().list(q=q, maxResults=max_results).execute(num_retries=10)
             for folder in folders["items"]:
                 if folder["title"] == split_filename[0]:
                     # Assuming every folder has a single parent
@@ -286,10 +286,10 @@ class GoogleDriveStorage(Storage):
             if parent_id is not None:
                 q = "{0} and '{1}' in parents".format(q, parent_id)
             max_results = 1000  # Max value admitted from google drive
-            file_list = self._drive_service.files().list(q=q, maxResults=max_results).execute()
+            file_list = self._drive_service.files().list(q=q, maxResults=max_results).execute(num_retries=10)
             if len(file_list["items"]) == 0:
                 q = "" if parent_id is None else "'{0}' in parents".format(parent_id)
-                file_list = self._drive_service.files().list(q=q, maxResults=max_results).execute()
+                file_list = self._drive_service.files().list(q=q, maxResults=max_results).execute(num_retries=10)
                 for element in file_list["items"]:
                     if split_filename[0] in element["title"]:
                         return element
@@ -326,11 +326,11 @@ class GoogleDriveStorage(Storage):
             body['parents'] = [{'id': parent_id}]
         file_data = self._drive_service.files().insert(
             body=body,
-            media_body=media_body).execute()
+            media_body=media_body).execute(num_retries=10)
 
         # Setting up permissions
         for p in self._permissions:
-            self._drive_service.permissions().insert(fileId=file_data["id"], body=p.raw).execute()
+            self._drive_service.permissions().insert(fileId=file_data["id"], body=p.raw).execute(num_retries=10)
 
         return file_data.get(u'originalFilename', file_data.get(u'title'))
 
@@ -340,7 +340,7 @@ class GoogleDriveStorage(Storage):
         """
         file_data = self._check_file_exists(name)
         if file_data is not None:
-            self._drive_service.files().delete(fileId=file_data['id']).execute()
+            self._drive_service.files().delete(fileId=file_data['id']).execute(num_retries=10)
 
     def exists(self, name):
         """
@@ -368,8 +368,8 @@ class GoogleDriveStorage(Storage):
                 'q': "'{0}' in parents and mimeType = '{1}'".format(folder_id["id"],
                                                                     self._GOOGLE_DRIVE_FOLDER_MIMETYPE_),
             }
-            files_list = self._drive_service.files().list(**file_params).execute()
-            dir_list = self._drive_service.files().list(**dir_params).execute()
+            files_list = self._drive_service.files().list(**file_params).execute(num_retries=10)
+            dir_list = self._drive_service.files().list(**dir_params).execute(num_retries=10)
             for element in files_list["items"]:
                 files.append(os.path.join(path, element["title"]))
             for element in dir_list["items"]:
